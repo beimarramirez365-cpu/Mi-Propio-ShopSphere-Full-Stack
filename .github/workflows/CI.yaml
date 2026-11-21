@@ -61,7 +61,7 @@ jobs:
         run: |
           cd build-src
 
-          docker compose -f docker-compose.yaml \
+          docker compose -f Docker-Compose.yaml \
             -p shopsphere-full-stack-e-commerce-platform \
             build --no-cache
 
@@ -84,10 +84,10 @@ jobs:
         run: |
           cd deploy-src
 
-          docker compose -f docker-compose.yaml \
+          docker compose -f Docker-Compose.yaml \
             -p shopsphere-full-stack-e-commerce-platform \
             up -d --no-build
 
-          docker compose -f docker-compose.yaml \
+          docker compose -f Docker-Compose.yaml \
             -p shopsphere-full-stack-e-commerce-platform \
             ps
