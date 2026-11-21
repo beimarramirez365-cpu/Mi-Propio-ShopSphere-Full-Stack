@@ -5,15 +5,17 @@ on:
   push:
     branches:
       - main
-
   workflow_dispatch:
 
 concurrency:
   group: shopsphere-deploy
   cancel-in-progress: false
 
-jobs:
+env:
+  SHOPSPHERE_ENV_FILE: /mnt/c/Users/HP_CORE_I5/Documents/6er_Semestre/Configuracion de Servidores/Tareas/Practica_2/ShopSphere-Full-Stack-E-Commerce-Platform/.env
+  COMPOSE_PROJECT_NAME: shopsphere-full-stack-e-commerce-platform
 
+jobs:
   test:
     name: Test del Backend
     runs-on: [self-hosted, Linux, X64]
@@ -54,17 +56,23 @@ jobs:
         with:
           path: build-src
 
+      - name: Verificar archivo de entorno
+        run: |
+          test -f "$SHOPSPHERE_ENV_FILE"
+
       - name: Construyendo imagenes
-        env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           cd build-src
 
-          docker compose -f Docker-Compose.yaml \
-            -p shopsphere-full-stack-e-commerce-platform \
-            build --no-cache
+          docker compose \
+            --env-file "$SHOPSPHERE_ENV_FILE" \
+            -p "$COMPOSE_PROJECT_NAME" \
+            config --quiet
 
+          docker compose \
+            --env-file "$SHOPSPHERE_ENV_FILE" \
+            -p "$COMPOSE_PROJECT_NAME" \
+            build --no-cache
 
   deploy:
     name: Deploy de ShopSphere
@@ -78,16 +86,19 @@ jobs:
           path: deploy-src
 
       - name: Desplegando contenedores
-        env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           cd deploy-src
 
-          docker compose -f Docker-Compose.yaml \
-            -p shopsphere-full-stack-e-commerce-platform \
+          docker compose \
+            --env-file "$SHOPSPHERE_ENV_FILE" \
+            -p "$COMPOSE_PROJECT_NAME" \
             up -d --no-build
 
-          docker compose -f Docker-Compose.yaml \
-            -p shopsphere-full-stack-e-commerce-platform \
+      - name: Verificando contenedores
+        run: |
+          cd deploy-src
+
+          docker compose \
+            --env-file "$SHOPSPHERE_ENV_FILE" \
+            -p "$COMPOSE_PROJECT_NAME" \
             ps
