@@ -6,16 +6,31 @@ on:
     branches:
       - main
 
-jobs:
-  test:
-    runs-on: self-hosted
-    steps:
-      - name: copiar codigo
-        uses: actions/checkout@v4
+  workflow_dispatch:
 
-      - name: ejecutando test
+concurrency:
+  group: shopsphere-deploy
+  cancel-in-progress: false
+
+jobs:
+
+  test:
+    name: Test del Backend
+    runs-on: [self-hosted, Linux, X64]
+
+    steps:
+      - name: Copiar codigo
+        uses: actions/checkout@v4
+        with:
+          path: test-src
+
+      - name: Ejecutando test
         run: |
+          cd test-src
+
           docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp \
             -e DB_URL=jdbc:h2:mem:testdb \
             -e DB_USER=sa \
             -e DB_PASSWORD= \
@@ -26,30 +41,56 @@ jobs:
             -v "$PWD/Ecommerce-Backend:/app" \
             -w /app \
             maven:3.9-eclipse-temurin-21 \
-            mvn test
+            mvn -Dmaven.repo.local=/tmp/m2 test
 
   build:
+    name: Build de Docker
     needs: test
     runs-on: [self-hosted, Linux, X64]
+
     steps:
       - name: Copiar codigo
         uses: actions/checkout@v4
+        with:
+          path: build-src
 
       - name: Construyendo imagenes
-        run: |
-          docker compose build --no-cache
-
-  deploy:
-    needs: build
-    runs-on: [self-hosted, Linux, X64]
-    steps:
-      - name: Copiar codigo
-        uses: actions/checkout@v4
-
-      - name: Construyendo contenedores
         env:
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
-          docker compose up -d --build
-          docker compose ps
+          cd build-src
+
+          docker compose \
+            -p shopsphere-full-stack-e-commerce-platform \
+            config --quiet
+
+          docker compose \
+            -p shopsphere-full-stack-e-commerce-platform \
+            build --no-cache
+
+  deploy:
+    name: Deploy de ShopSphere
+    needs: build
+    runs-on: [self-hosted, Linux, X64]
+
+    steps:
+      - name: Copiar codigo
+        uses: actions/checkout@v4
+        with:
+          path: deploy-src
+
+      - name: Desplegando contenedores
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          cd deploy-src
+
+          docker compose \
+            -p shopsphere-full-stack-e-commerce-platform \
+            up -d --no-build
+
+          docker compose \
+            -p shopsphere-full-stack-e-commerce-platform \
+            ps
