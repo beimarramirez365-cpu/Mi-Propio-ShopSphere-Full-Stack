@@ -8,14 +8,21 @@ on:
 
 jobs:
   test:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: self-hosted
     steps:
-      - name: Copiar codigo
+      - name: copiar codigo
         uses: actions/checkout@v4
 
-      - name: Ejecutando test
+      - name: ejecutando test
         run: |
           docker run --rm \
+            -e DB_URL=jdbc:h2:mem:testdb \
+            -e DB_USER=sa \
+            -e DB_PASSWORD= \
+            -e SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.h2.Driver \
+            -e SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.H2Dialect \
+            -e SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop \
+            -e SPRING_SQL_INIT_MODE=never \
             -v "$PWD/Ecommerce-Backend:/app" \
             -w /app \
             maven:3.9-eclipse-temurin-21 \
