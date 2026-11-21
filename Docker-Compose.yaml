@@ -1,0 +1,55 @@
+
+services:
+  bd:
+    image: mysql:8.0
+    container_name: base_de_datos
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: shopsphere
+      MYSQL_USER: shopsphere
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - vol14:/var/lib/mysql
+    networks:
+      - red14
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$${MYSQL_ROOT_PASSWORD}\" mysqladmin ping -h 127.0.0.1 -u root --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  backend:
+    build: ./Ecommerce-Backend
+    container_name: backend_java
+    restart: on-failure
+    depends_on:
+      bd:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mysql://bd:3306/shopsphere?useSSL=false&allowPublicKeyRetrieval=true
+      DB_USER: shopsphere
+      DB_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "8080:8080"
+    networks:
+      - red14
+
+  frontend:
+    build: ./Ecommerce-Frontend
+    container_name: frontend_react
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "4200:80"
+    networks:
+      - red14
+
+networks:
+  red14:
+    driver: bridge
+
+volumes:
+  vol14:
