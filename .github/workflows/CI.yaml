@@ -65,11 +65,7 @@ jobs:
           cd build-src
 
           docker compose \
-            --env-file "$SHOPSPHERE_ENV_FILE" \
-            -p "$COMPOSE_PROJECT_NAME" \
-            config --quiet
-
-          docker compose \
+            -f Docker-Compose.yaml \
             --env-file "$SHOPSPHERE_ENV_FILE" \
             -p "$COMPOSE_PROJECT_NAME" \
             build --no-cache
@@ -85,11 +81,13 @@ jobs:
         with:
           path: deploy-src
 
+
       - name: Desplegando contenedores
         run: |
           cd deploy-src
 
           docker compose \
+            -f Docker-Compose.yaml \
             --env-file "$SHOPSPHERE_ENV_FILE" \
             -p "$COMPOSE_PROJECT_NAME" \
             up -d --no-build
@@ -99,6 +97,8 @@ jobs:
           cd deploy-src
 
           docker compose \
+            -f Docker-Compose.yaml \
             --env-file "$SHOPSPHERE_ENV_FILE" \
             -p "$COMPOSE_PROJECT_NAME" \
             ps
+
